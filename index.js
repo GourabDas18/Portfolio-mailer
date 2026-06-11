@@ -6,9 +6,15 @@ const app = express();
 const jsonfile = require('jsonfile')
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
-app.use(cors({origin:'http://localhost:5173',preflightContinue:false}));
-app.use(cors({origin:'https://www.gourab.dev',preflightContinue:false}));
-app.use(cors({origin:'http://gourab.dev',preflightContinue:false}));
+app.use(cors({
+    origin: [
+        'http://localhost:5173',
+        'https://gourab.dev',
+        'https://www.gourab.dev'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true
+}));
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
