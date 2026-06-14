@@ -25,6 +25,7 @@ const transporter = nodemailer.createTransport({
     },
   });
 app.post('/',async (req,res)=>{
+    console.log(process.env.MAIL_PASS)
     const {from,name,message}=req.body;
     if(from!== null && from.includes('@') && from.length>7){
         if(name!== null && name.length>2){
@@ -53,7 +54,7 @@ app.post('/',async (req,res)=>{
                
                 
               } catch (error) {
-                res.status(400).send('Error! try again later');
+                res.status(400).send(`Error! try again later,${error.message}`);
               }
             }else{
                 res.status(400).send('Error! Too short message.')
