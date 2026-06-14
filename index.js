@@ -33,7 +33,7 @@ const transporter = nodemailer.createTransport({
 app.post('/', async (req, res) => {
     const { from, name, message } = req.body;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (from !== null && femailRegex.test(from)) {
+    if (from !== null && emailRegex.test(from)) {
         if (name !== null && name.length > 2) {
             if (message !== null && message.length > 3) {
                 try {
