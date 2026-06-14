@@ -33,9 +33,15 @@ const transporter = nodemailer.createTransport({
 });
 app.post('/', async (req, res) => {
     try {
-        console.log(process.env.MAIL_PASS)
         const { from, name, message } = req.body;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        transporter.verify((err, success) => {
+            if (err) {
+                console.error("VERIFY ERROR:", err);
+            } else {
+                console.log("SMTP READY");
+            }
+        });
         if (from !== null && emailRegex.test(from)) {
             if (name !== null && name.length > 2) {
                 if (message !== null && message.length > 3) {
@@ -51,7 +57,7 @@ app.post('/', async (req, res) => {
                             return res.status(400).send('Error ! Try Again Later')
                         } else {
                             await transporter.verify();
-                            console.log('SMTP Ready');      
+                            console.log('SMTP Ready');
                             const info = await transporter.sendMail({
                                 from: 'gourab.das.oct@gmail.com', // sender address
                                 to: "dasgrb18@gmail.com", // list of receivers
