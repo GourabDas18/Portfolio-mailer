@@ -11,6 +11,7 @@ const limiter = rateLimit({
 });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.set('trust proxy', true)
 app.use(cors({
     origin: [
         'http://localhost:5173',
@@ -31,51 +32,57 @@ const transporter = nodemailer.createTransport({
     },
 });
 app.post('/', async (req, res) => {
-    const { from, name, message } = req.body;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (from !== null && emailRegex.test(from)) {
-        if (name !== null && name.length > 2) {
-            if (message !== null && message.length > 3) {
-                try {
-                    const checkIp = await ipChecker(req.headers['x-forwarded-for']?.split(',')[0] ||
-                        req.socket.remoteAddress);
-                    console.log({
-                        ip: req.ip,
-                        remote: req.socket.remoteAddress,
-                        forwarded: req.headers['x-forwarded-for']
-                    });
-                    if (!checkIp) {
-                        return res.status(400).send('Error ! Try Again Later')
-                    } else {
-                        const info = await transporter.sendMail({
-                            from: 'gourab.das.oct@gmail.com', // sender address
-                            to: "dasgrb18@gmail.com", // list of receivers
-                            subject: `Message from ${name} on portfolio website`, // plain text body
-                            html: `
-                    <h2>Message from ${name} </h2><br>
-                    <p>Mail id: ${from} </p><br>
-                    <b>${message}</b>`, // html body
+    try {
+        const { from, name, message } = req.body;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (from !== null && emailRegex.test(from)) {
+            if (name !== null && name.length > 2) {
+                if (message !== null && message.length > 3) {
+                    try {
+                        const checkIp = await ipChecker(req.headers['x-forwarded-for']?.split(',')[0] ||
+                            req.socket.remoteAddress);
+                        console.log({
+                            ip: req.ip,
+                            remote: req.socket.remoteAddress,
+                            forwarded: req.headers['x-forwarded-for']
                         });
-                        console.log('message sent')
-                        if (info.accepted && info.accepted.length > 0) {
-                            res.status(200).send('Mail sent succesfully')
+                        if (!checkIp) {
+                            return res.status(400).send('Error ! Try Again Later')
                         } else {
-                            res.status(400).send('Error ! Try again')
+                            await transporter.verify();
+                            console.log('SMTP Ready');      
+                            const info = await transporter.sendMail({
+                                from: 'gourab.das.oct@gmail.com', // sender address
+                                to: "dasgrb18@gmail.com", // list of receivers
+                                subject: `Message from ${name} on portfolio website`, // plain text body
+                                html: `
+                                        <h2>Message from ${name} </h2><br>
+                                        <p>Mail id: ${from} </p><br>
+                                        <b>${message}</b>`, // html body
+                            });
+                            console.log('message sent')
+                            if (info.accepted && info.accepted.length > 0) {
+                                res.status(200).send('Mail sent succesfully')
+                            } else {
+                                res.status(400).send('Error ! Try again')
+                            }
                         }
+
+
+                    } catch (error) {
+                        res.status(400).send(`Error! try again later,${error.message}`);
                     }
-
-
-                } catch (error) {
-                    res.status(400).send(`Error! try again later,${error.message}`);
+                } else {
+                    res.status(400).send('Error! Too short message.')
                 }
             } else {
-                res.status(400).send('Error! Too short message.')
+                res.status(400).send('Error! Give proper name')
             }
         } else {
-            res.status(400).send('Error! Give proper name')
+            res.status(400).send('Error ! Give a proper mail')
         }
-    } else {
-        res.status(400).send('Error ! Give a proper mail')
+    } catch (e) {
+        res.status(400).send(e.message ?? "Error in sending mail!");
     }
 })
 app.listen(process.env.PORT || 5000, function () {
