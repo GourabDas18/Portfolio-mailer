@@ -24,8 +24,8 @@ app.use(cors({
 app.use('/', limiter);
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 465,
-    secure: true, // Use `true` for port 465, `false` for all other ports
+    port: 587,
+    secure: false, // Use `true` for port 465, `false` for all other ports
     auth: {
         user: "gourab.das.oct@gmail.com",
         pass: process.env.MAIL_PASS,
@@ -35,13 +35,6 @@ app.post('/', async (req, res) => {
     try {
         const { from, name, message } = req.body;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        transporter.verify((err, success) => {
-            if (err) {
-                console.error("VERIFY ERROR:", err);
-            } else {
-                console.log("SMTP READY");
-            }
-        });
         if (from !== null && emailRegex.test(from)) {
             if (name !== null && name.length > 2) {
                 if (message !== null && message.length > 3) {
