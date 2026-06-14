@@ -1,5 +1,4 @@
 const express = require('express');
-const nodemailer = require("nodemailer");
 const cors = require('cors');
 require('dotenv').config();
 const app = express();
@@ -20,15 +19,7 @@ app.use(cors({
     credentials: true
 }));
 app.use('/', limiter);
-const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true, // Use `true` for port 465, `false` for all other ports
-    auth: {
-        user: "gourab.das.oct@gmail.com",
-        pass: process.env.MAIL_PASS,
-    },
-});
+
 app.post('/', async (req, res) => {
     try {
         const { from, name, message } = req.body;
@@ -47,28 +38,41 @@ app.post('/', async (req, res) => {
                         if (!checkIp) {
                             return res.status(400).send('Error ! Try Again Later')
                         } else {
-                            await transporter.verify();
-                            console.log('SMTP Ready');
-                            const info = await transporter.sendMail({
-                                from: 'gourab.das.oct@gmail.com', // sender address
-                                to: "dasgrb18@gmail.com", // list of receivers
-                                subject: `Message from ${name} on portfolio website`, // plain text body
-                                html: `
-                                        <h2>Message from ${name} </h2><br>
-                                        <p>Mail id: ${from} </p><br>
-                                        <b>${message}</b>`, // html body
+                            if (!process.env.RESEND_API_KEY) {
+                                console.error("Error: RESEND_API_KEY is not defined.");
+                                return res.status(500).send("Server configuration error.");
+                            }
+
+                            const response = await fetch('https://api.resend.com/emails', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    from: 'Portfolio Contact <onboarding@resend.dev>',
+                                    to: 'dasgrb18@gmail.com',
+                                    subject: `Message from ${name} on portfolio website`,
+                                    html: `
+                                        <h2>Message from ${name}</h2><br>
+                                        <p>Mail id: ${from}</p><br>
+                                        <b>${message}</b>
+                                    `
+                                })
                             });
-                            console.log('message sent')
-                            if (info.accepted && info.accepted.length > 0) {
-                                res.status(200).send('Mail sent succesfully')
+
+                            const resData = await response.json();
+
+                            if (response.ok) {
+                                console.log('Email sent successfully:', resData);
+                                res.status(200).send('Mail sent succesfully');
                             } else {
-                                res.status(400).send('Error ! Try again')
+                                console.error('Resend API error:', resData);
+                                res.status(400).send('Error ! Try again');
                             }
                         }
-
-
                     } catch (error) {
-                        console.error('Nodemailer verification/sending error:', error);
+                        console.error('Processing error:', error);
                         res.status(400).send(`Error! try again later, ${error.message}`);
                     }
                 } else {
